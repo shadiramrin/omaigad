@@ -1,0 +1,26 @@
+{
+  "name": "mari-order",
+  "version": "1.0.0",
+  "description": "Sistem Skrin Tempahan Makanan Layan Diri Mari Order & Panel Admin CMS",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "db:init": "wrangler d1 execute mari-order-db --command=\"SELECT 1;\""
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "cloudflare-d1",
+    "kiosk",
+    "food-ordering",
+    "self-service",
+    "vanilla-js"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.109.2"
+  }
+}

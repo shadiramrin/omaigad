@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mari Order CMS - Panel Pengurusan Kedai & Dapur</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Paparan Log Masuk (Ditunjukkan jika belum diautentikasi) -->
+  <div class="auth-wrapper" id="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">🏪</div>
+        <h2>Mari Order CMS</h2>
+        <p>Panel Kawalan Kedai & Pesanan Dapur</p>
+      </div>
+
+      <!-- Banner Amaran 503 jika ADMIN_PASSWORD belum diset -->
+      <div class="alert-503 hidden" id="alert-not-configured">
+        <strong>⚠️ 503 Service Unavailable:</strong><br>
+        <code>ADMIN_PASSWORD</code> belum diset dalam persekitaran Cloudflare Workers.<br>
+        <small>Sila tetapkan pembolehubah <code>ADMIN_PASSWORD</code> di Cloudflare Dashboard &gt; Workers Settings &gt; Variables and Secrets atau dalam fail <code>wrangler.toml</code>.</small>
+      </div>
+
+      <form id="form-login" class="auth-form">
+        <div class="form-group">
+          <label for="admin-password">Kata Laluan Pentadbir (Admin Password):</label>
+          <input type="password" id="admin-password" placeholder="Masukkan kata laluan admin" required autocomplete="current-password">
+        </div>
+        <div class="form-error hidden" id="login-error-msg"></div>
+        <button type="submit" class="btn-primary-auth" id="btn-submit-login">
+          Log Masuk CMS
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Panel Dashboard Admin Utama -->
+  <div class="admin-app hidden" id="admin-app">
+    <!-- Sidebar / Top Nav -->
+    <header class="admin-navbar">
+      <div class="nav-brand">
+        <span class="nav-logo">🍔</span>
+        <div>
+          <h3>Mari Order CMS</h3>
+          <span class="nav-sub" id="admin-store-name-display">Kafe Santai</span>
+        </div>
+      </div>
+
+      <!-- Status Kedai Buka/Tutup Cepat -->
+      <div class="nav-store-status">
+        <span class="status-label">Status Kedai:</span>
+        <label class="switch-toggle" title="Buka atau tutup kedai secara langsung">
+          <input type="checkbox" id="quick-toggle-store">
+          <span class="slider round"></span>
+        </label>
+        <span class="status-text-pill" id="quick-store-status-text">BUKA</span>
+      </div>
+
+      <!-- Butang Notifikasi Bunyi & Log Keluar -->
+      <div class="nav-actions">
+        <button class="nav-btn" id="btn-toggle-sound" title="Aktif / Bisukan bunyi pesanan baru">
+          <span id="sound-icon">🔔</span> <span id="sound-text">Bunyi Hidup</span>
+        </button>
+        <a href="/" target="_blank" class="nav-btn" title="Buka Skrin Kiosk Pelanggan">
+          <span>🖥️</span> Buka Kiosk
+        </a>
+        <button class="nav-btn btn-logout" id="btn-logout" title="Log keluar">
+          <span>🚪</span> Keluar
+        </button>
+      </div>
+    </header>
+
+    <!-- Bar Tab Navigasi CMS -->
+    <nav class="admin-tabs">
+      <button class="tab-btn active" data-tab="orders">
+        <span>👨‍🍳</span> Pesanan Dapur (<span id="badge-orders-count">0</span>)
+      </button>
+      <button class="tab-btn" data-tab="menu">
+        <span>📋</span> Item Menu
+      </button>
+      <button class="tab-btn" data-tab="categories">
+        <span>📂</span> Kategori
+      </button>
+      <button class="tab-btn" data-tab="settings">
+        <span>⚙️</span> Tetapan Kedai
+      </button>
+    </nav>
+
+    <!-- Kandungan Tab Utama -->
+    <main class="tab-content-area">
+      <!-- ============================================ -->
+      <!-- TAB 1: PESANAN DAPUR (KITCHEN ORDERS BOARD) -->
+      <!-- ============================================ -->
+      <section class="tab-pane active" id="pane-orders">
+        <div class="pane-header">
+          <div>
+            <h2>Papan Pesanan Dapur</h2>
+            <p>Pantau & kemaskini status pesanan pelanggan secara langsung.</p>
+          </div>
+          <!-- Penapis Status Pesanan -->
+          <div class="filter-pills" id="order-filters">
+            <button class="filter-pill active" data-status="semua">Semua</button>
+            <button class="filter-pill" data-status="baru">Baru <span class="pill-count" id="count-baru">0</span></button>
+            <button class="filter-pill" data-status="disediakan">Sedang Disediakan <span class="pill-count" id="count-disediakan">0</span></button>
+            <button class="filter-pill" data-status="selesai">Selesai</button>
+            <button class="filter-pill" data-status="batal">Batal</button>
+          </div>
+        </div>
+
+        <!-- Grid Kad Pesanan Dapur -->
+        <div class="orders-grid" id="orders-grid">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Memuatkan senarai pesanan...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- TAB 2: PENGURUSAN ITEM MENU -->
+      <!-- ============================================ -->
+      <section class="tab-pane" id="pane-menu">
+        <div class="pane-header">
+          <div>
+            <h2>Pengurusan Item Menu</h2>
+            <p>Tambah, kemaskini, salin (duplicate), tukar harga pantas dan aktifkan hidangan.</p>
+          </div>
+          <button class="btn-action-primary" id="btn-add-item">
+            <span>➕</span> Tambah Item Baru
+          </button>
+        </div>
+
+        <!-- Penapis Kategori Menu -->
+        <div class="table-controls">
+          <div class="filter-group">
+            <label>Tapis Mengikut Kategori:</label>
+            <select id="select-filter-cat">
+              <option value="all">Semua Kategori</option>
+            </select>
+          </div>
+          <div class="search-group">
+            <input type="text" id="input-search-item" placeholder="Cari nama item...">
+          </div>
+        </div>
+
+        <!-- Jadual Item Menu -->
+        <div class="table-responsive">
+          <table class="data-table" id="table-items">
+            <thead>
+              <tr>
+                <th style="width: 70px;">Gambar</th>
+                <th>Nama Hidangan</th>
+                <th>Kategori</th>
+                <th style="width: 130px;">Harga (RM)</th>
+                <th style="width: 100px;">Status</th>
+                <th style="width: 200px; text-align: center;">Tindakan</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-items">
+              <!-- Item dijana oleh JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- TAB 3: PENGURUSAN KATEGORI -->
+      <!-- ============================================ -->
+      <section class="tab-pane" id="pane-categories">
+        <div class="pane-header">
+          <div>
+            <h2>Pengurusan Kategori Menu</h2>
+            <p>Susun kategori hidangan dan kawal keterlihatan pada kiosk.</p>
+          </div>
+          <button class="btn-action-primary" id="btn-add-category">
+            <span>➕</span> Tambah Kategori Baru
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="table-categories">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Ikon</th>
+                <th>Nama Kategori</th>
+                <th>Turutan Susunan</th>
+                <th>Bilangan Item</th>
+                <th>Status</th>
+                <th style="width: 150px; text-align: center;">Tindakan</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-categories">
+              <!-- Kategori dijana oleh JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- TAB 4: TETAPAN KEDAI -->
+      <!-- ============================================ -->
+      <section class="tab-pane" id="pane-settings">
+        <div class="pane-header">
+          <div>
+            <h2>Tetapan Kedai & Banner</h2>
+            <p>Konfigurasi nama kedai, pengumuman pelanggan dan status operasi.</p>
+          </div>
+        </div>
+
+        <form id="form-settings" class="settings-form-grid">
+          <div class="settings-card">
+            <h3>Maklumat Asas Kedai</h3>
+            <div class="form-group">
+              <label for="set-store-name">Nama Kedai / Kafe:</label>
+              <input type="text" id="set-store-name" placeholder="Cth: Mari Order - Kafe Santai" required>
+            </div>
+
+            <div class="form-group">
+              <label for="set-banner-text">Teks Banner / Pengumuman Kiosk:</label>
+              <textarea id="set-banner-text" rows="3" placeholder="Teks pesanan ringkas yang dipaparkan di bahagian atas kiosk..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Status Operasi Kedai:</label>
+              <div class="radio-inline">
+                <label>
+                  <input type="radio" name="set_is_open" value="1" checked> Buka (Menerima Pesanan)
+                </label>
+                <label>
+                  <input type="radio" name="set_is_open" value="0"> Tutup (Hanya Papar Menu)
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-save-settings" id="btn-save-settings">
+              💾 Simpan Perubahan Tetapan
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- MODAL: TAMBAH / EDIT ITEM MENU -->
+  <!-- ============================================ -->
+  <div class="modal-overlay hidden" id="modal-item">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-item-title">Tambah Item Menu</h3>
+        <button class="btn-close-modal" id="btn-close-item-modal">&times;</button>
+      </div>
+      <form id="form-item" class="modal-form">
+        <input type="hidden" id="item-form-id">
+        <input type="hidden" id="item-form-image-id">
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="item-name">Nama Hidangan: *</label>
+            <input type="text" id="item-name" required placeholder="Cth: Nasi Lemak Ayam Berempah">
+          </div>
+          <div class="form-group flex-1">
+            <label for="item-category">Kategori: *</label>
+            <select id="item-category" required></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="item-price">Harga (RM): *</label>
+            <input type="number" id="item-price" step="0.10" min="0" required placeholder="12.90">
+          </div>
+          <div class="form-group flex-1">
+            <label for="item-emoji">Emoji Fallback: *</label>
+            <input type="text" id="item-emoji" value="🍽️" required placeholder="Cth: 🍗, ☕">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="item-desc">Penerangan Hidangan:</label>
+          <textarea id="item-desc" rows="2" placeholder="Kandungan hidangan, perapan rempah, dsb..."></textarea>
+        </div>
+
+        <!-- Muat Naik Gambar dengan Mampatan Browser <canvas> (Peraturan #3) -->
+        <div class="form-group">
+          <label>Gambar Hidangan (Auto-mampat &lt; 95 KB, latar putih PNG):</label>
+          <div class="image-upload-box">
+            <div class="image-preview-wrap" id="image-preview-wrap">
+              <span class="preview-placeholder">Tiada Gambar</span>
+            </div>
+            <div class="upload-controls">
+              <input type="file" id="item-image-file" accept="image/*">
+              <button type="button" class="btn-remove-img hidden" id="btn-remove-item-img">Padam Gambar</button>
+              <small class="upload-tip">Maksimum 480px, dimampatkan automatik &lt; 95 KB untuk D1.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="item-is-active" checked>
+            <span>Aktifkan item ini dalam skrin tempahan kiosk</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-item">Batal</button>
+          <button type="submit" class="btn-primary" id="btn-save-item">Simpan Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- MODAL: TAMBAH / EDIT KATEGORI -->
+  <!-- ============================================ -->
+  <div class="modal-overlay hidden" id="modal-category">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h3 id="modal-cat-title">Tambah Kategori</h3>
+        <button class="btn-close-modal" id="btn-close-cat-modal">&times;</button>
+      </div>
+      <form id="form-category" class="modal-form">
+        <input type="hidden" id="cat-form-id">
+
+        <div class="form-group">
+          <label for="cat-name">Nama Kategori: *</label>
+          <input type="text" id="cat-name" required placeholder="Cth: Makanan Utama">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="cat-icon">Ikon Emoji:</label>
+            <input type="text" id="cat-icon" value="📁" placeholder="Cth: 🍛, 🥤">
+          </div>
+          <div class="form-group flex-1">
+            <label for="cat-sort">Turutan Susunan:</label>
+            <input type="number" id="cat-sort" value="1" min="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="cat-is-active" checked>
+            <span>Kategori Aktif</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-cat">Batal</button>
+          <button type="submit" class="btn-primary" id="btn-save-cat">Simpan Kategori</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Skrip CMS Pentadbir -->
+  <script src="/js/admin.js"></script>
+</body>
+</html>

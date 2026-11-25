@@ -1,0 +1,20 @@
+name = "mari-order"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Aset statik skrin Kiosk dan CMS Admin
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Pangkalan Data Cloudflare D1
+[[d1_databases]]
+binding = "DB"
+database_name = "mari-order-db"
+database_id = "6ec50943-142f-4711-871b-fe01d8f9d2a4"
+
+# Pembolehubah Persekitaran (Untuk dev tempatan)
+# NOTA: Untuk pengeluaran, tetapkan ADMIN_PASSWORD dalam Cloudflare Dashboard (Secrets)
+[vars]
+# ADMIN_PASSWORD = "tukar_kata_laluan_ini"

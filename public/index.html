@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mari Order - Skrin Tempahan Makanan Layan Diri</title>
+  <link rel="stylesheet" href="/css/kiosk.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header Kiosk -->
+  <header class="kiosk-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-logo" id="store-logo">🍽️</div>
+        <div>
+          <h1 class="store-title" id="store-name">Mari Order</h1>
+          <p class="store-subtitle">Sistem Tempahan Layan Diri</p>
+        </div>
+      </div>
+
+      <!-- Banner Pengumuman -->
+      <div class="banner-pill" id="banner-container">
+        <span class="banner-icon">📢</span>
+        <span class="banner-text" id="store-banner">Selamat Datang ke Mari Order! Nikmati masakan panas & sedap.</span>
+      </div>
+
+      <!-- Status Kedai & Butang Jejak -->
+      <div class="header-actions">
+        <div class="store-status-badge open" id="store-status-badge">
+          <span class="status-dot"></span>
+          <span id="store-status-text">KEDAI DIBUKA</span>
+        </div>
+        <button class="track-btn" id="btn-open-tracker" title="Semak status giliran pesanan">
+          <span>🔍</span> Semak Status
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Banner Amaran jika kedai ditutup -->
+  <div class="store-closed-alert hidden" id="store-closed-banner">
+    ⚠️ <strong>MAAF, KEDAI SEDANG DITUTUP.</strong> Anda boleh melihat menu, tetapi pesanan baru tidak dapat dibuat buat masa ini.
+  </div>
+
+  <!-- Layout Utama: Kategori, Menu & Troli -->
+  <main class="kiosk-main">
+    <!-- Bahagian Menu & Kategori -->
+    <section class="menu-section">
+      <!-- Bar Navigasi Kategori (Scroll mendatar) -->
+      <nav class="category-nav" id="category-nav">
+        <button class="category-btn active" data-id="all">
+          <span class="cat-icon">⭐</span>
+          <span class="cat-name">Semua Menu</span>
+        </button>
+        <!-- Kategori dinamik dijana oleh JS -->
+      </nav>
+
+      <!-- Grid Menu Kad -->
+      <div class="menu-grid" id="menu-grid">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Memuatkan menu lazat...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar / Panel Troli Pesanan -->
+    <aside class="cart-aside" id="cart-aside">
+      <div class="cart-card">
+        <div class="cart-header">
+          <div class="cart-title-wrap">
+            <h2>🛒 Troli Pesanan</h2>
+            <span class="cart-badge" id="cart-item-count">0</span>
+          </div>
+          <button class="btn-clear-cart" id="btn-clear-cart" title="Kosongkan troli">Kosongkan</button>
+        </div>
+
+        <!-- Pilihan Makan Sini / Bungkus -->
+        <div class="order-type-picker">
+          <label class="type-option">
+            <input type="radio" name="order_type" value="dine_in" checked>
+            <div class="type-box">
+              <span class="type-icon">🍽️</span>
+              <span class="type-label">Makan Sini</span>
+            </div>
+          </label>
+          <label class="type-option">
+            <input type="radio" name="order_type" value="takeaway">
+            <div class="type-box">
+              <span class="type-icon">🥡</span>
+              <span class="type-label">Bungkus</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Senarai Item Troli -->
+        <div class="cart-items-list" id="cart-items-list">
+          <div class="cart-empty">
+            <span class="empty-icon">🥣</span>
+            <p>Troli anda masih kosong.</p>
+            <small>Pilih hidangan kegemaran dari menu di sebelah kiri.</small>
+          </div>
+        </div>
+
+        <!-- Nota Khas untuk Dapur -->
+        <div class="cart-notes">
+          <label for="order-notes">Nota Khas (Pilihan):</label>
+          <input type="text" id="order-notes" placeholder="Cth: Kurang manis, tanpa taugeh, asingkan kuah...">
+        </div>
+
+        <!-- Ringkasan Harga -->
+        <div class="cart-summary">
+          <div class="summary-row">
+            <span>Jumlah Item:</span>
+            <span id="summary-qty">0</span>
+          </div>
+          <div class="summary-row total-row">
+            <span>Jumlah Keseluruhan:</span>
+            <span class="total-price" id="summary-total">RM 0.00</span>
+          </div>
+        </div>
+
+        <!-- Butang Hantar Pesanan -->
+        <div class="cart-footer">
+          <button class="btn-checkout" id="btn-checkout" disabled>
+            <span class="btn-checkout-text">Hantar Pesanan</span>
+            <span class="btn-checkout-price" id="btn-checkout-price">RM 0.00</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal Kejayaan Pesanan & Status Langsung -->
+  <div class="modal-overlay hidden" id="order-success-modal">
+    <div class="modal-card status-modal-card">
+      <div class="modal-header-badge">
+        <span class="badge-icon">🎉</span>
+        <h3>Pesanan Berjaya Dihantar!</h3>
+      </div>
+
+      <div class="queue-display">
+        <p class="queue-label">NOMBOR GILIRAN ANDA</p>
+        <div class="queue-number" id="live-queue-number">A-001</div>
+        <div class="queue-order-type" id="live-order-type">Makan Sini</div>
+      </div>
+
+      <!-- Penunjuk Status Pesanan Langsung -->
+      <div class="status-tracker-container">
+        <div class="tracker-steps">
+          <div class="step-item" id="step-baru">
+            <div class="step-icon">📝</div>
+            <div class="step-text">
+              <strong>Pesanan Diterima</strong>
+              <small>Menunggu dapur</small>
+            </div>
+          </div>
+          <div class="step-line" id="line-1"></div>
+          <div class="step-item" id="step-disediakan">
+            <div class="step-icon">👨‍🍳</div>
+            <div class="step-text">
+              <strong>Sedang Disediakan</strong>
+              <small>Dapur sedang masak</small>
+            </div>
+          </div>
+          <div class="step-line" id="line-2"></div>
+          <div class="step-item" id="step-selesai">
+            <div class="step-icon">🔔</div>
+            <div class="step-text">
+              <strong>Sedia Diambil</strong>
+              <small>Sila ke kaunter</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-notification-box" id="status-notification-box">
+          Pesanan anda sedang diproses. Skrin ini akan dikemaskini secara automatik...
+        </div>
+      </div>
+
+      <!-- Ringkasan Item Pesanan -->
+      <div class="order-receipt-summary">
+        <h4>Ringkasan Pesanan (<span id="receipt-id">#0</span>)</h4>
+        <div class="receipt-items" id="receipt-items-list"></div>
+        <div class="receipt-total">
+          <span>Jumlah Bayaran:</span>
+          <strong id="receipt-total-price">RM 0.00</strong>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-primary" id="btn-new-order">Buat Pesanan Baru</button>
+        <button class="btn-secondary" id="btn-close-modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Semak Status Giliran (Untuk pelanggan semak bila-bila masa) -->
+  <div class="modal-overlay hidden" id="track-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔍 Semak Status Giliran</h3>
+        <button class="modal-close-btn" id="btn-close-track-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Masukkan nombor ID Pesanan untuk melihat status terkini:</p>
+        <div class="input-group">
+          <input type="number" id="input-track-id" placeholder="Cth: 12" min="1">
+          <button class="btn-primary" id="btn-search-order">Semak</button>
+        </div>
+        <div id="track-result-area" class="track-result hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skrip Kiosk Tulen -->
+  <script src="/js/kiosk.js"></script>
+</body>
+</html>
